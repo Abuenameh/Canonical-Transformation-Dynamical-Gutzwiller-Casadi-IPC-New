@@ -662,8 +662,8 @@ void build_ode() {
  */
 int main(int argc, char** argv) {
     
-    build_ode();
-    return 0;
+//    build_ode();
+//    return 0;
 
     ptime begin = microsec_clock::local_time();
 
