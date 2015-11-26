@@ -261,7 +261,7 @@ worker_input* initialize(double Wi, double Wf, double mu, double scale, vector<d
     }
 
     SX E = energy(f, J, U0, dU, mu/scale);
-    SX E2 = energynew(f, J, U0, dU, mu/scale);
+    SX E2 = energy(f, J, U0, dU, mu/scale, false);
     
     SX g = SX::sym("g", L);
     for (int i = 0; i < L; i++) {
@@ -283,12 +283,13 @@ worker_input* initialize(double Wi, double Wf, double mu, double scale, vector<d
     vector<double> xrand(2 * L*dim, 1);
     rng.seed();
     for (int i = 0; i < 2 * L * dim; i++) {
-        xrand[i] = (i+1.)/(2*L*dim);//uni(rng);
+        xrand[i] = uni(rng);
+//        xrand[i] = (i+1.)/(2*L*dim);
     }
-    vector<double> asd;
-    double qwe = nlp2(vector<DMatrix>{xrand, asd})[0].toScalar();
-    cout << ::math(qwe) << endl;
-    return nullptr;
+//    vector<double> asd;
+//    double qwe = nlp2(vector<DMatrix>{xrand, asd})[0].toScalar();
+//    cout << ::math(qwe) << endl;
+//    return nullptr;
 
     map<string, DMatrix> arg;
     arg["lbx"] = -1;
@@ -301,7 +302,7 @@ worker_input* initialize(double Wi, double Wf, double mu, double scale, vector<d
     vector<double> x0 = res["x"].nonzeros();
 //        vector<double> x0 = xrand;
 //    cout << "x0 = " << ::math(x0) << endl;
-    cout << "E0 = " << ::math(res["f"].toScalar()) << endl;
+//    cout << "E0 = " << ::math(res["f"].toScalar()) << endl;
 
     vector<complex<double>> x0i(dim);
     for (int i = 0; i < L; i++) {
@@ -484,7 +485,7 @@ void worker(worker_input* input, worker_tau* tau_in, worker_output* output, mana
         dU[i] = UW(Wt * xi[i])/scale - U0;
     }
 
-    SX E = energy(f, J, U0, dU, mu/scale);
+    SX E = energy(f, J, U0, dU, mu/scale, true);
     SXFunction Ef = SXFunction("E",{f, t, tau},
     {
         E
@@ -600,7 +601,7 @@ void build_ode() {
     }
 
     SX scaledmu = mu/scale;
-    SX E = energy(f, J, U0, dU, scaledmu);
+    SX E = energy(f, J, U0, dU, scaledmu, true);
     SXFunction Ef = SXFunction("E",{f, t, tau},
     {
         E
@@ -661,8 +662,8 @@ void build_ode() {
  */
 int main(int argc, char** argv) {
     
-//    build_ode();
-//    return 0;
+    build_ode();
+    return 0;
 
     ptime begin = microsec_clock::local_time();
 

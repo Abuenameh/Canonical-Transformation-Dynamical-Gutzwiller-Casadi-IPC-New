@@ -16,8 +16,8 @@ template SX canonical<double>(SX& fin, SX& J, SX& U0, SX& dU, double mu);
 template SX energy2<SX>(SX& fin, SX& J, SX& U0, SX& dU, SX mu);
 template SX energy2<double>(SX& fin, SX& J, SX& U0, SX& dU, double mu);
 
-template SX energynew<SX>(SX& fin, SX& J, SX& U0, SX& dU, SX mu);
-template SX energynew<double>(SX& fin, SX& J, SX& U0, SX& dU, double mu);
+template SX energy<SX>(SX& fin, SX& J, SX& U0, SX& dU, SX mu, bool normalize);
+template SX energy<double>(SX& fin, SX& J, SX& U0, SX& dU, double mu, bool normalize);
 
 //double JW(double W) {
 //    return alpha * (W * W) / (Ng * Ng + W * W);
@@ -1256,12 +1256,12 @@ template<class T> SX energy2(int i, int n, SX& fin, SX& J, SX& U0, SX& dU, T mu)
     return E.real();
 }
 
-template<class T> SX energynew(SX& fin, SX& J, SX& U0, SX& dU, T mu) {
+template<class T> SX energy(SX& fin, SX& J, SX& U0, SX& dU, T mu, bool normalize) {
 
     SX E = 0;
     for (int i = 0; i < L; i++) {
         for (int n = 0; n <= nmax; n++) {
-            E += energynew(i, n, fin, J, U0, dU, mu);
+            E += energy(i, n, fin, J, U0, dU, mu, normalize);
         }
     }
     return E;
@@ -1682,10 +1682,10 @@ template<class T> SX energynew(SX& fin, SX& J, SX& U0, SX& dU, T mu) {
 //    return E.imag();
 //}
 
-template<class T> SX energynew(int i, int n, SX& fin, SX& J, SX& U0, SX& dU, T mu) {
+template<class T> SX energy(int i, int n, SX& fin, SX& J, SX& U0, SX& dU, T mu, bool normalize) {
 
     complex<SX> expth = complex<SX>(1, 0);
-//    complex<SX> expth = complex<SX>(sin(0.1), cos(0.1));
+//    complex<SX> expth = complex<SX>(cos(0.1), sin(0.1));
     complex<SX> expmth = ~expth;
     complex<SX> exp2th = expth*expth;
     complex<SX> expm2th = ~exp2th;
@@ -1726,6 +1726,7 @@ template<class T> SX energynew(int i, int n, SX& fin, SX& J, SX& U0, SX& dU, T m
         Ej2 += -J[i] * (n + 1) * expmth * ~f[i][n + 1] * ~f[j2][n] * f[i][n]
                 * f[j2][n + 1];
 
+        // 333333333333
         if (n > 0) {
             Ej1 += 0.5 * J[j1] * J[j1] * (1 / U0) * n * (n + 1) * exp2th
                     * ~f[i][n + 1] * ~f[j1][n - 1] * f[i][n - 1] * f[j1][n + 1];
@@ -1739,6 +1740,7 @@ template<class T> SX energynew(int i, int n, SX& fin, SX& J, SX& U0, SX& dU, T m
                     * ~f[i][n + 2] * ~f[j2][n] * f[i][n] * f[j2][n + 2];
         }
 
+        // 111111111111
         if (n > 1) {
             Ej1 += -0.25 * J[j1] * J[j1] * (1 / (U0 * U0)) * n * sqrt((n - 1) * (n + 1)) * exp2th
                     * (eps(dU, i, j1, n, n - 1) + eps(dU, i, j1, n - 1, n))
@@ -1759,6 +1761,7 @@ template<class T> SX energynew(int i, int n, SX& fin, SX& J, SX& U0, SX& dU, T m
 
         for (int m = 1; m <= nmax; m++) {
             if (n != m - 1) {
+                // 33333333
                 Ej1 += 0.5 * J[j1] * J[j1] * (1 / U0) * m * (n + 1) * (1. / (n - m + 1))
                         * (~f[i][n + 1] * ~f[j1][m - 1] * f[i][n + 1] * f[j1][m - 1] -
                         ~f[i][n] * ~f[j1][m] * f[i][n] * f[j1][m]);
@@ -1771,6 +1774,7 @@ template<class T> SX energynew(int i, int n, SX& fin, SX& J, SX& U0, SX& dU, T m
                 Ej2 -= 1.0 * J[i] * (1 / U0) * sqrt(m * (n + 1)) * eps(dU, i, j2, n, m) * (1. / (n - m + 1)) * expmth
                         * ~f[i][n + 1] * ~f[j2][m - 1] * f[i][n] * f[j2][m];
 
+                // 22222222222
                 if (n != m - 3 && m > 1 && n < nmax - 1) {
                     Ej1 += 0.5 * J[j1] * J[j1] * (1 / (U0 * U0)) * g(n, m) * g(n + 1, m - 1) * (1. / ((n - m + 1) * (n - m + 3))) 
                             * exp2th * eps(dU, i, j1, n + 1, m - 1)
@@ -1788,8 +1792,7 @@ template<class T> SX energynew(int i, int n, SX& fin, SX& J, SX& U0, SX& dU, T m
                             * ~f[i][n + 1] * ~f[j2][m - 1] * f[i][n - 1] * f[j2][m + 1];
                 }
 
-                // 1
-////                
+                // 11111111111111
                 if (n > 0) {
                     Ej1j2 += -J[j1] * J[i] * (1 / (U0 * U0)) * sqrt(m * (n + 1)) * (1. / ((n - m + 1) * (n - m + 1))) * n
                             * (eps(dU, i, j1, n, m) + eps(dU, i, j2, n - 1, n))
@@ -1810,62 +1813,46 @@ template<class T> SX energynew(int i, int n, SX& fin, SX& J, SX& U0, SX& dU, T m
                             * ~f[i][n + 2] * ~f[j2][m - 1] * ~f[j1][n + 1]
                             * f[i][n] * f[j2][m] * f[j1][n + 2];
                 }
-                // -388297.424670189
                 
-                // 184589.990787172, 229156.265016023, 301021.542567152, 155850.5184032
-                // -227423.014645977, -441271.055741861, -333062.843507453, -257158.827548112
-                // 413746.255803147, 456872.060970304
-                // -668694.070387888, -590221.671055607
-                // 870618.316773403
-                // -1258915.74144354
-                // -388297.424670189
-                
-                // 1
+                // 111111111111
                 if (m < nmax) {
-                    Ej1k1 += -J[j1] * J[k1] * (1 / (U0 * U0)) * sqrt(m * (n + 1)) * (1. / ((n - m + 1) * (n - m + 1))) * (m + 1)
+                    Ej1k1 += -J[j1] * J[k1] * (1 / (U0 * U0)) * sqrt(m * (n + 1)) * (1. / ((n - m + 1) * (n - m + 1))) * (m + 1) //* exp2th
                             * (eps(dU, i, j1, n, m) + eps(dU, k1, j1, m, m + 1))
                             * ~f[i][n + 1] * ~f[j1][m - 1] * ~f[k1][m + 1]
                             * f[i][n] * f[j1][m + 1] * f[k1][m];
-                    Ej2k2 += -J[j2] * J[i] * (1 / (U0 * U0)) * sqrt(m * (n + 1)) * (1. / ((n - m + 1) * (n - m + 1))) * (m + 1)
+                    Ej2k2 += -J[j2] * J[i] * (1 / (U0 * U0)) * sqrt(m * (n + 1)) * (1. / ((n - m + 1) * (n - m + 1))) * (m + 1) //* expm2th
                             * (eps(dU, i, j2, n, m) + eps(dU, k2, j2, m, m + 1))
                             * ~f[i][n + 1] * ~f[j2][m - 1] * ~f[k2][m + 1]
                             * f[i][n] * f[j2][m + 1] * f[k2][m];
                 }
                 if (m > 1) {
-                    Ej1k1 -= -J[j1] * J[k1] * (1 / (U0 * U0)) * sqrt(m * (n + 1)) * (1. / ((n - m + 1) * (n - m + 1))) * (m - 1)
+                    Ej1k1 -= -J[j1] * J[k1] * (1 / (U0 * U0)) * sqrt(m * (n + 1)) * (1. / ((n - m + 1) * (n - m + 1))) * (m - 1) //* exp2th
                             * (eps(dU, i, j1, n, m) + eps(dU, k1, j1, m - 2, m - 1))
                             * ~f[i][n + 1] * ~f[j1][m - 2] * ~f[k1][m - 1]
                             * f[i][n] * f[j1][m] * f[k1][m - 2];
-                    Ej2k2 -= -J[j2] * J[i] * (1 / (U0 * U0)) * sqrt(m * (n + 1)) * (1. / ((n - m + 1) * (n - m + 1))) * (m - 1)
+                    Ej2k2 -= -J[j2] * J[i] * (1 / (U0 * U0)) * sqrt(m * (n + 1)) * (1. / ((n - m + 1) * (n - m + 1))) * (m - 1) //* expm2th
                             * (eps(dU, i, j2, n, m) + eps(dU, k2, j2, m - 2, m - 1))
                             * ~f[i][n + 1] * ~f[j2][m - 2] * ~f[k2][m - 1]
                             * f[i][n] * f[j2][m] * f[k2][m - 2];
                 }
-                // 388297.424670289
-                
-                // 16129681.9298205
-////
-//                
-////                
+//
+                // 2222222
                 Ej1 += -0.5 * J[j1] * J[j1] * (1 / (U0 * U0)) * m * (n + 1) * (1. / ((n - m + 1) * (n - m + 1))) * eps(dU, i, j1, n, m)
                         * (~f[i][n + 1] * ~f[j1][m - 1] * f[i][n + 1] * f[j1][m - 1] -
                         ~f[i][n] * ~f[j1][m] * f[i][n] * f[j1][m]);
                 Ej2 += -0.5 * J[i] * J[i] * (1 / (U0 * U0)) * m * (n + 1) * (1. / ((n - m + 1) * (n - m + 1))) * eps(dU, i, j2, n, m)
                         * (~f[i][n + 1] * ~f[j2][m - 1] * f[i][n + 1] * f[j2][m - 1] -
                         ~f[i][n] * ~f[j2][m] * f[i][n] * f[j2][m]);
-                // 283893.675186834
-////
 //
-                // 3
-                Ej1k1 += 0.5 * J[j1] * J[k1] * (1 / U0) * m * (n + 1) * (1. / (n - m + 1)) * exp2th
+                // 33333333
+                Ej1k1 += 0.5 * J[j1] * J[k1] * (1 / U0) * m * (n + 1) * (1. / (n - m + 1)) //* exp2th
                         * ~f[i][n + 1] * ~f[k1][n] * f[i][n] * f[k1][n + 1]
                         * (~f[j1][m - 1] * f[j1][m - 1] - ~f[j1][m] * f[j1][m]);
-                Ej2k2 += 0.5 * J[j2] * J[i] * (1 / U0) * m * (n + 1) * (1. / (n - m + 1)) * expm2th
+                Ej2k2 += 0.5 * J[j2] * J[i] * (1 / U0) * m * (n + 1) * (1. / (n - m + 1)) //* expm2th
                         * ~f[i][n + 1] * ~f[k2][n] * f[i][n] * f[k2][n + 1]
                         * (~f[j2][m - 1] * f[j2][m - 1] - ~f[j2][m] * f[j2][m]);
-//                
-////            
-                // 1
+//
+                // 111111111111
                 Ej1k1 += -J[j1] * J[k1] * (1 / (U0 * U0)) * m * sqrt(m * (n + 1)) * (1. / ((n - m + 1) * (n - m + 1))) * exp2th
                         * (eps(dU, i, j1, n, m) + eps(dU, j1, k1, m - 1, m))
                         * ~f[i][n + 1] * ~f[k1][m - 1] * f[i][n] * f[k1][m]
@@ -1874,15 +1861,8 @@ template<class T> SX energynew(int i, int n, SX& fin, SX& J, SX& U0, SX& dU, T m
                         * (eps(dU, i, j2, n, m) + eps(dU, j2, k2, m - 1, m))
                         * ~f[i][n + 1] * ~f[k2][m - 1] * f[i][n] * f[k2][m]
                         * (~f[j2][m - 1] * f[j2][m - 1] - ~f[j2][m] * f[j2][m]);
-                // 23963.9632234665, -14908.1755065784, -15940.6812122144, 25930.1902116356
-                // -67043.6490100992, 76099.4367269881, -69151.4847693194, 79140.9937687397
-                // 9989.50899936404, 9055.78771683201
-                // 19045.2967161392
-                
-                // 128285.018461426
-////                
-//                
-                // 4
+//
+                // 4444444
                 if (m != n - 1 && n != m && m < nmax && n > 0) {
                     Ej1 += -0.25 * J[j1] * J[j1] * (1 / (U0 * U0)) * g(n, m) * g(n - 1, m + 1) * (1. / ((n - m) * (n - m + 1))) * exp2th
                             * (eps(dU, i, j1, n, m) + eps(dU, i, j1, n - 1, m + 1))
@@ -1900,8 +1880,7 @@ template<class T> SX energynew(int i, int n, SX& fin, SX& J, SX& U0, SX& dU, T m
                             * ~f[i][n + 2] * ~f[j2][m - 2] * f[i][n] * f[j2][m];
                 }
 //
-////                
-                // 3
+                // 3333333
                 if (n > 0 && 2*n - m >= 0 && 2*n - m + 1 <= nmax) {
                     Ej1j2 += 0.5 * J[j1] * J[i] * (1 / U0) * g(n, m) * g(n - 1, 2 * n - m + 1) * (1. / (n - m + 1))
                             * ~f[i][n + 1] * ~f[j1][m - 1] * ~f[j2][2*n - m]
@@ -1918,58 +1897,49 @@ template<class T> SX energynew(int i, int n, SX& fin, SX& J, SX& U0, SX& dU, T m
                             * ~f[i][n + 2] * ~f[j2][m - 1] * ~f[j1][2*n - m + 2]
                             * f[i][n] * f[j2][m] * f[j1][2*n - m + 3];
                 }
-                // 418.268890353269, 418.268890353356
-                // 836.537780655141
-////                
 //
-                // 3
+                // 3333333333
                 if (m < nmax && 2*m - n > 0 && 2*m - n <= nmax) {
-                    Ej1k1 += 0.5 * J[j1] * J[k1] * (1 / U0) * sqrt(m * (n + 1)) * (1. / (n - m + 1))
+                    Ej1k1 += 0.5 * J[j1] * J[k1] * (1 / U0) * sqrt(m * (n + 1)) * (1. / (n - m + 1)) //* exp2th
                             * g(2*m - n - 1, m + 1)
                             * ~f[i][n + 1] * ~f[j1][m - 1] * ~f[k1][2*m - n]
                             * f[i][n] * f[j1][m + 1] * f[k1][2*m - n - 1];
-                    Ej2k2 += 0.5 * J[i] * J[j2] * (1 / U0) * sqrt(m * (n + 1)) * (1. / (n - m + 1))
+                    Ej2k2 += 0.5 * J[i] * J[j2] * (1 / U0) * sqrt(m * (n + 1)) * (1. / (n - m + 1)) //* expm2th
                             * g(2*m - n - 1, m + 1)
                             * ~f[i][n + 1] * ~f[j2][m - 1] * ~f[k2][2*m - n]
                             * f[i][n] * f[j2][m + 1] * f[k2][2*m - n - 1];
                 }
                 if (m > 1 && 2*m - n - 3 >= 0 && 2*m - n - 2 <= nmax) {
-                    Ej1k1 -= 0.5 * J[j1] * J[k1] * (1 / U0) * sqrt(m * (n + 1)) * (1. / (n - m + 1))
+                    Ej1k1 -= 0.5 * J[j1] * J[k1] * (1 / U0) * sqrt(m * (n + 1)) * (1. / (n - m + 1)) //* exp2th
                             * g(2*m - n - 3, m - 1)
                             * ~f[i][n + 1] * ~f[j1][m - 2] * ~f[k1][2*m - n - 2]
                             * f[i][n] * f[j1][m] * f[k1][2*m - n - 3];
-                    Ej2k2 -= 0.5 * J[i] * J[j2] * (1 / U0) * sqrt(m * (n + 1)) * (1. / (n - m + 1))
+                    Ej2k2 -= 0.5 * J[i] * J[j2] * (1 / U0) * sqrt(m * (n + 1)) * (1. / (n - m + 1)) //* expm2th
                             * g(2*m - n - 3, m - 1)
                             * ~f[i][n + 1] * ~f[j2][m - 2] * ~f[k2][2*m - n - 2]
                             * f[i][n] * f[j2][m] * f[k2][2*m - n - 3];
                 }
-                // -418.268890250038, -418.268890250038
-                // -7976.34269562314
-                
-////                if () {
-                    Ej1j2 += -J[j1] * J[i] * (1 / (U0 * U0)) * (n + 1) * sqrt(m * (n + 1)) * (1. / ((n - m + 1) * (n - m + 1)))
+//                
+                // 11111111111111
+                    Ej1j2 += -J[j1] * J[i] * (1 / (U0 * U0)) * (n + 1) * sqrt(m * (n + 1)) * (1. / ((n - m + 1) * (n - m + 1))) * exp2th
                             * (eps(dU, i, j1, n, m) + eps(dU, j2, i, n, n + 1))
                             * ~f[j1][m - 1] * ~f[j2][n + 1] * f[j1][m] * f[j2][n]
                             * (~f[i][n + 1] * f[i][n + 1] - ~f[i][n] * f[i][n]);
-                    Ej1j2 += -J[i] * J[j1] * (1 / (U0 * U0)) * (n + 1) * sqrt(m * (n + 1)) * (1. / ((n - m + 1) * (n - m + 1)))
+                    Ej1j2 += -J[i] * J[j1] * (1 / (U0 * U0)) * (n + 1) * sqrt(m * (n + 1)) * (1. / ((n - m + 1) * (n - m + 1))) * expm2th
                             * (eps(dU, i, j2, n, m) + eps(dU, j1, i, n, n + 1))
                             * ~f[j2][m - 1] * ~f[j1][n + 1] * f[j2][m] * f[j1][n]
                             * (~f[i][n + 1] * f[i][n + 1] - ~f[i][n] * f[i][n]);
-////                }
-                    // 4717757.47352494
 //
-////                    if () {
-                        Ej1j2 += 0.5 * J[j1] * J[i] * (1 / U0) * g(n, m) * g(m - 1, n + 1) * (1. / (n - m + 1))
+                    // 333333333
+                    Ej1j2 += 0.5 * J[j1] * J[i] * (1 / U0) * g(n, m) * g(m - 1, n + 1) * (1. / (n - m + 1)) * exp2th
                                 * ~f[j1][m - 1] * ~f[j2][m] * f[j1][m] * f[j2][m - 1]
                                 * (~f[i][n + 1] * f[i][n + 1] - ~f[i][n] * f[i][n]);
-                        Ej1j2 += 0.5 * J[i] * J[j1] * (1 / U0) * g(n, m) * g(m - 1, n + 1) * (1. / (n - m + 1))
+                        Ej1j2 += 0.5 * J[i] * J[j1] * (1 / U0) * g(n, m) * g(m - 1, n + 1) * (1. / (n - m + 1)) * expm2th
                                 * ~f[j2][m - 1] * ~f[j1][m] * f[j2][m] * f[j1][m - 1]
                                 * (~f[i][n + 1] * f[i][n + 1] - ~f[i][n] * f[i][n]);
-////                    }
-                    
+//                    
                 for (int p = 0; p < nmax; p++) {
-                    // 2
-////
+                    // 2222222222222
                     if (n > 0 && n != p + 1) {
                         Ej1j2 += -0.5 * J[j1] * J[i] * (1 / (U0 * U0)) * g(n, m) * g(n - 1, p + 1) * (1. / ((n - m + 1) * (n - p - 1)))
                                 * eps(dU, i, j2, n - 1, p + 1)
@@ -1990,13 +1960,8 @@ template<class T> SX energynew(int i, int n, SX& fin, SX& J, SX& U0, SX& dU, T m
                                 * ~f[i][n + 2] * ~f[j2][m - 1] * ~f[j1][p]
                                 * f[i][n] * f[j2][m] * f[j1][p + 1];
                     }
-                    // 4393.31259909911, 5171.2527925197
-                    // -108740.817618299, -41755.6523228415
-                    // -110931.904549666
-////               
 //
-////                    
-                    // 4
+                    // 44444444444
                     if (n > 0 && p != n - 1 && p != 2*n - m) {
                         Ej1j2 += -0.5 * J[j1] * J[i] * (1 / (U0 * U0)) * g(n, m) * g(n - 1, p + 1) * (1. / ((n - m + 1) * (2*n - m - p)))
                                 * (eps(dU, i, j1, n, m) + eps(dU, i, j2, n - 1, p + 1))
@@ -2017,15 +1982,8 @@ template<class T> SX energynew(int i, int n, SX& fin, SX& J, SX& U0, SX& dU, T m
                                 * ~f[i][n + 2] * ~f[j2][m - 1] * ~f[j1][p]
                                 * f[i][n] * f[j2][m] * f[j1][p + 1];
                     }
-                    // 195532.577075732, 209744.760203048
-                    // 11423561.4247241, 15866985.3988171, , , , , , 
-                    // 27290546.8235411, 26157583.1150721, -26479274.8865846, -24950993.0883767
-                    // 53448129.9386132, -51430267.9749614
-                    // 2017861.96365173
-                    // 16390527.1176297
-////
 //
-////                    
+                    // 2222222222
                     if (p != m - 1) {
                         Ej1k1 += 0.5 * J[j1] * J[k1] * (1 / (U0 * U0)) * m * sqrt((n + 1) * (p + 1)) * (1. / ((n - m + 1) * (p - m + 1))) * exp2th
                                 * eps(dU, j1, k1, m - 1, p + 1)
@@ -2036,11 +1994,8 @@ template<class T> SX energynew(int i, int n, SX& fin, SX& J, SX& U0, SX& dU, T m
                                 * ~f[i][n + 1] * ~f[k2][p] * f[i][n] * f[k2][p + 1]
                                 * (~f[j2][m - 1] * f[j2][m - 1] - ~f[j2][m] * f[j2][m]);
                     }
-                    // -4302.76410792346
-////
 //
-////                    
-                    // 4
+                    // 444444444
                     if (p != n && p != m - 1) {
                         Ej1k1 += -0.5 * J[j1] * J[k1] * (1 / (U0 * U0)) * m * sqrt((n + 1) * (p + 1)) * (1. / ((n - m + 1) * (n - p))) * exp2th
                                 * (eps(dU, i, j1, n, m) + eps(dU, j1, k1, m - 1, p + 1))
@@ -2051,118 +2006,90 @@ template<class T> SX energynew(int i, int n, SX& fin, SX& J, SX& U0, SX& dU, T m
                                 * ~f[i][n + 1] * ~f[k2][p] * f[i][n] * f[k2][p + 1]
                                 * (~f[j2][m - 1] * f[j2][m - 1] - ~f[j2][m] * f[j2][m]);
                     }
-                    // 316.148145683284 //-638.05657706823
-////
                 }
                 
                 for (int q = 1; q <= nmax; q++) {
-                    // 2
+                    // 22222222222
                     if (m < nmax && q != m + 1) {
-                        Ej1k1 += -0.5 * J[j1] * J[k1] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, m + 1) * (1. / ((n - m + 1) * (q - m - 1)))
+                        Ej1k1 += -0.5 * J[j1] * J[k1] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, m + 1) * (1. / ((n - m + 1) * (q - m - 1))) //* exp2th
                                 * eps(dU, k1, j1, q - 1, m + 1)
                                 * ~f[i][n + 1] * ~f[j1][m - 1] * ~f[k1][q]
                                 * f[i][n] * f[j1][m + 1] * f[k1][q - 1];
-                        Ej2k2 += -0.5 * J[i] * J[j2] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, m + 1) * (1. / ((n - m + 1) * (q - m - 1)))
+                        Ej2k2 += -0.5 * J[i] * J[j2] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, m + 1) * (1. / ((n - m + 1) * (q - m - 1))) //* expm2th
                                 * eps(dU, k2, j2, q - 1, m + 1)
                                 * ~f[i][n + 1] * ~f[j2][m - 1] * ~f[k2][q]
                                 * f[i][n] * f[j2][m + 1] * f[k2][q - 1];
                     }
                     if (m > 1 && q != m - 1) {
-                        Ej1k1 -= -0.5 * J[j1] * J[k1] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, m - 1) * (1. / ((n - m + 1) * (q - m + 1)))
+                        Ej1k1 -= -0.5 * J[j1] * J[k1] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, m - 1) * (1. / ((n - m + 1) * (q - m + 1))) //* exp2th
                                 * eps(dU, k1, j1, q - 1, m - 1)
                                 * ~f[i][n + 1] * ~f[j1][m - 2] * ~f[k1][q]
                                 * f[i][n] * f[j1][m] * f[k1][q - 1];
-                        Ej2k2 -= -0.5 * J[i] * J[j2] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, m - 1) * (1. / ((n - m + 1) * (q - m + 1)))
+                        Ej2k2 -= -0.5 * J[i] * J[j2] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, m - 1) * (1. / ((n - m + 1) * (q - m + 1))) //* expm2th
                                 * eps(dU, k2, j2, q - 1, m - 1)
                                 * ~f[i][n + 1] * ~f[j2][m - 2] * ~f[k2][q]
                                 * f[i][n] * f[j2][m] * f[k2][q - 1];
                     }
-                    // 41755.6523229369, 108740.817618397
-                    // -35171.2527924234, -4393.31259900222
-                    // 1273388.26756343
-//                    
-                    // 4
+//
+                    // 4444444444
                     if (m < nmax && q != m + 1 && q != 2*m - n) {
-                        Ej1k1 += -0.5 * J[j1] * J[k1] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, m + 1) * (1. / ((n - m + 1) * (n - 2*m + q)))
+                        Ej1k1 += -0.5 * J[j1] * J[k1] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, m + 1) * (1. / ((n - m + 1) * (n - 2*m + q))) //* exp2th
                                 * (eps(dU, i, j1, n, m) + eps(dU, k1, j1, q - 1, m + 1))
                                 * ~f[i][n + 1] * ~f[j1][m - 1] * ~f[k1][q]
                                 * f[i][n] * f[j1][m + 1] * f[k1][q - 1];
-                        Ej2k2 += -0.5 * J[i] * J[j2] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, m + 1) * (1. / ((n - m + 1) * (n - 2*m + q)))
+                        Ej2k2 += -0.5 * J[i] * J[j2] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, m + 1) * (1. / ((n - m + 1) * (n - 2*m + q))) //* expm2th
                                 * (eps(dU, i, j2, n, m) + eps(dU, k2, j2, q - 1, m + 1))
                                 * ~f[i][n + 1] * ~f[j2][m - 1] * ~f[k2][q]
                                 * f[i][n] * f[j2][m + 1] * f[k2][q - 1];
                     }
                     if (m > 1 && q != m - 1 && q != 2*m - n - 2) {
-                        Ej1k1 -= -0.5 * J[j1] * J[k1] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, m - 1) * (1. / ((n - m + 1) * (n - 2*m + q + 2)))
+                        Ej1k1 -= -0.5 * J[j1] * J[k1] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, m - 1) * (1. / ((n - m + 1) * (n - 2*m + q + 2))) //* exp2th
                                 * (eps(dU, i, j1, n, m) + eps(dU, k1, j1, q - 1, m - 1))
                                 * ~f[i][n + 1] * ~f[j1][m - 2] * ~f[k1][q]
                                 * f[i][n] * f[j1][m] * f[k1][q - 1];
-                        Ej2k2 -= -0.5 * J[i] * J[j2] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, m - 1) * (1. / ((n - m + 1) * (n - 2*m + q + 2)))
+                        Ej2k2 -= -0.5 * J[i] * J[j2] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, m - 1) * (1. / ((n - m + 1) * (n - 2*m + q + 2))) //* expm2th
                                 * (eps(dU, i, j2, n, m) + eps(dU, k2, j2, q - 1, m - 1))
                                 * ~f[i][n + 1] * ~f[j2][m - 2] * ~f[k2][q]
                                 * f[i][n] * f[j2][m] * f[k2][q - 1];
                     }
-                    // 14156.5652527833, 36780.8568217808, , , , 
-                    // 50937.4220745125, 136588.843304373, -209744.760202947, -195532.577075628
-                    // 187526.265378835, -405277.337278626
-                    // 369605.019061902
-                    // 3624884.82518526
-                    // i->j, j->i
-//                    if (m < nmax && q != m + 1 && q != 2*m - n) {
-//                        Ej1j2 += -0.5 * J[j1] * J[i] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, m + 1) * (1. / ((n - m + 1) * (n - 2*m + q)))
-//                                * (eps(dU, j1, i, n, m) + eps(dU, j2, i, q - 1, m + 1))
-//                                * ~f[j1][n + 1] * ~f[i][m - 1] * ~f[j2][q]
-//                                * f[j1][n] * f[i][m + 1] * f[j2][q - 1];
-//                        Ej1j2 += -0.5 * J[i] * J[j1] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, m + 1) * (1. / ((n - m + 1) * (n - 2*m + q)))
-//                                * (eps(dU, j2, i, n, m) + eps(dU, j1, i, q - 1, m + 1))
-//                                * ~f[j2][n + 1] * ~f[i][m - 1] * ~f[j1][q]
-//                                * f[j2][n] * f[i][m + 1] * f[j1][q - 1];
-//                    }
-//                    if (m > 1 && q != m - 1 && q != 2*m - n - 2) {
-//                        Ej1j2 -= -0.5 * J[j1] * J[i] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, m - 1) * (1. / ((n - m + 1) * (n - 2*m + q + 2)))
-//                                * (eps(dU, j1, i, n, m) + eps(dU, j2, i, q - 1, m - 1))
-//                                * ~f[j1][n + 1] * ~f[i][m - 2] * ~f[j2][q]
-//                                * f[j1][n] * f[i][m] * f[j2][q - 1];
-//                        Ej1j2 -= -0.5 * J[i] * J[j1] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, m - 1) * (1. / ((n - m + 1) * (n - 2*m + q + 2)))
-//                                * (eps(dU, j2, i, n, m) + eps(dU, j1, i, q - 1, m - 1))
-//                                * ~f[j2][n + 1] * ~f[i][m - 2] * ~f[j1][q]
-//                                * f[j2][n] * f[i][m] * f[j1][q - 1];
-//                    }
-                    // 136588.843304373, 50937.4220745126, -405277.337278626
-                    
+//                    
+                    // 2222222222
                     if (n != q - 1) {
-                        Ej1j2 += -0.5 * J[j1] * J[i] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, n + 1) * (1. / ((n - m + 1)*(q - n - 1)))
+                        Ej1j2 += -0.5 * J[j1] * J[i] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, n + 1) * (1. / ((n - m + 1)*(q - n - 1))) * exp2th
                                 * eps(dU, j2, i, q - 1, n + 1)
                                 * ~f[j1][m - 1] * ~f[j2][q] * f[j1][m] * f[j2][q - 1]
                                 * (~f[i][n + 1] * f[i][n + 1] - ~f[i][n] * f[i][n]);
-                        Ej1j2 += -0.5 * J[i] * J[j1] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, n + 1) * (1. / ((n - m + 1)*(q - n - 1)))
+                        Ej1j2 += -0.5 * J[i] * J[j1] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, n + 1) * (1. / ((n - m + 1)*(q - n - 1))) * expm2th
                                 * eps(dU, j1, i, q - 1, n + 1)
                                 * ~f[j2][m - 1] * ~f[j1][q] * f[j2][m] * f[j1][q - 1]
                                 * (~f[i][n + 1] * f[i][n + 1] - ~f[i][n] * f[i][n]);
                     }
-//                        
-                        if(n != q - 1 && q != m) {
-                            Ej1j2 += -0.5 * J[j1] * J[i] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, n + 1) * (1. / ((n - m + 1) * (q - m)))
-                                    * (eps(dU, i, j1, n, m) + eps(dU, j2, i, q - 1, n + 1))
-                                    * ~f[j1][m - 1] * ~f[j2][q] * f[j1][m] * f[j2][q - 1]
-                                    * (~f[i][n + 1] * f[i][n + 1] - ~f[i][n] * f[i][n]);
-                            Ej1j2 += -0.5 * J[j1] * J[i] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, n + 1) * (1. / ((n - m + 1) * (q - m)))
-                                    * (eps(dU, i, j2, n, m) + eps(dU, j1, i, q - 1, n + 1))
-                                    * ~f[j2][m - 1] * ~f[j1][q] * f[j2][m] * f[j1][q - 1]
-                                    * (~f[i][n + 1] * f[i][n + 1] - ~f[i][n] * f[i][n]);
-                        }
+//
+                    // 44444444
+                    if(n != q - 1 && q != m) {
+                        Ej1j2 += -0.5 * J[j1] * J[i] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, n + 1) * (1. / ((n - m + 1) * (q - m))) * exp2th
+                                * (eps(dU, i, j1, n, m) + eps(dU, j2, i, q - 1, n + 1))
+                                * ~f[j1][m - 1] * ~f[j2][q] * f[j1][m] * f[j2][q - 1]
+                                * (~f[i][n + 1] * f[i][n + 1] - ~f[i][n] * f[i][n]);
+                        Ej1j2 += -0.5 * J[j1] * J[i] * (1 / (U0 * U0)) * g(n, m) * g(q - 1, n + 1) * (1. / ((n - m + 1) * (q - m))) * expm2th
+                                * (eps(dU, i, j2, n, m) + eps(dU, j1, i, q - 1, n + 1))
+                                * ~f[j2][m - 1] * ~f[j1][q] * f[j2][m] * f[j1][q - 1]
+                                * (~f[i][n + 1] * f[i][n + 1] - ~f[i][n] * f[i][n]);
+                    }
                 }
             }
         }
 
     }
 
-    Ei /= norm2[i];
-    Ej1 /= norm2[i] * norm2[j1];
-    Ej2 /= norm2[i] * norm2[j2];
-    Ej1j2 /= norm2[i] * norm2[j1] * norm2[j2];
-    Ej1k1 /= norm2[i] * norm2[j1] * norm2[k1];
-    Ej2k2 /= norm2[i] * norm2[j2] * norm2[k2];
+    if (normalize) {
+        Ei /= norm2[i];
+        Ej1 /= norm2[i] * norm2[j1];
+        Ej2 /= norm2[i] * norm2[j2];
+        Ej1j2 /= norm2[i] * norm2[j1] * norm2[j2];
+        Ej1k1 /= norm2[i] * norm2[j1] * norm2[k1];
+        Ej2k2 /= norm2[i] * norm2[j2] * norm2[k2];
+    }
 
     E += Ei;
     E += Ej1;
