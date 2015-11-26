@@ -260,7 +260,7 @@ worker_input* initialize(double Wi, double Wf, double mu, double scale, vector<d
         dU[i] = UW(Wi * xi[i])/scale - U0;
     }
 
-    SX E = energy(f, J, U0, dU, mu/scale);
+    SX E = energy(f, J, U0, dU, mu/scale, true);
     SX E2 = energy(f, J, U0, dU, mu/scale, false);
     
     SX g = SX::sym("g", L);
@@ -298,11 +298,12 @@ worker_input* initialize(double Wi, double Wf, double mu, double scale, vector<d
     arg["lbg"] = 1;
     arg["ubg"] = 1;
 
-    map<string, DMatrix> res = solver2(arg);
+    map<string, DMatrix> res = solver(arg);
     vector<double> x0 = res["x"].nonzeros();
 //        vector<double> x0 = xrand;
 //    cout << "x0 = " << ::math(x0) << endl;
 //    cout << "E0 = " << ::math(res["f"].toScalar()) << endl;
+//    exit(0);
 
     vector<complex<double>> x0i(dim);
     for (int i = 0; i < L; i++) {
