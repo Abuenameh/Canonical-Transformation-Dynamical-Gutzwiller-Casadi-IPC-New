@@ -2098,5 +2098,5 @@ template<class T> SX energy(int i, int n, SX& fin, SX& J, SX& U0, SX& dU, T mu, 
     E += Ej1k1;
     E += Ej2k2;
 
-    return E.imag();
+    return E.real();
 }

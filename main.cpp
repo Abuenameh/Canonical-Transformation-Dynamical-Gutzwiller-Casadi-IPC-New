@@ -767,7 +767,7 @@ int main(int argc, char** argv) {
         managed_shared_memory segment(create_only, "SharedMemory", size);
 
         worker_input* w_input = initialize(Wi, Wf, mui, scale, xi, segment);
-        return 0;
+//        return 0;
 
         void_allocator void_alloc(segment.get_segment_manager());
         char_string integrator(intg.begin(), intg.end(), void_alloc);
