@@ -247,6 +247,16 @@ void threadfunc(std::string prog, double tauf, queue<input>& inputs, vector<resu
     segment.destroy_ptr<worker_output>(output);
 }
 
+double energyfunc(const vector<double>& x, vector<double>& grad, void* data) {
+    SXFunction* Egrad = (SXFunction*)data;
+    vector<double> dummy;
+    
+    vector<DMatrix> res = (*Egrad)(vector<DMatrix>{x, dummy});
+//    grad = res[0];
+    copy(res[0].begin(), res[0].end(), grad.begin());
+    return res[1].toScalar();
+}
+
 worker_input* initialize(double Wi, double Wf, double mu, double scale, vector<double>& xi, managed_shared_memory& segment) {
 
     SX f = SX::sym("f", 2 * L * dim);
@@ -276,7 +286,7 @@ worker_input* initialize(double Wi, double Wf, double mu, double scale, vector<d
 //    NlpSolver solver("solver", "ipopt", nlp, make_dict("hessian_approximation", "limited-memory", "linear_solver", "ma86", "print_level", 0, "print_time", false));
     SXFunction nlp2("nlp", nlpIn("x", f), nlpOut("f", E2, "g", g));
     NlpSolver solver2("solver", "ipopt", nlp2, make_dict("hessian_approximation", "limited-memory", "linear_solver", "ma86", "print_level", 0, "print_time", false, "obj_scaling_factor", 1));
-
+    
     boost::random::mt19937 rng;
     boost::random::uniform_real_distribution<> uni(-1, 1);
 
@@ -285,11 +295,24 @@ worker_input* initialize(double Wi, double Wf, double mu, double scale, vector<d
     for (int i = 0; i < 2 * L * dim; i++) {
         xrand[i] = uni(rng);
 //        xrand[i] = (i+1.)/(2*L*dim);
+//        int site = i/(2*dim);
+//        xrand[i] = site/(2.*L*dim);
     }
 //    vector<double> asd;
 //    double qwe = nlp2(vector<DMatrix>{xrand, asd})[0].toScalar();
 //    cout << ::math(qwe) << endl;
 //    return nullptr;
+//    exit(0);
+
+    Function Egrad = nlp.gradient();
+    vector<double> x02(xrand.begin(), xrand.end());
+    opt lopt(LD_LBFGS, 2 * L * dim);
+    lopt.set_lower_bounds(-1);
+    lopt.set_upper_bounds(1);
+    lopt.set_min_objective(energyfunc, &Egrad);
+    double E0;
+    lopt.optimize(x02, E0);
+    cout << "nlopt E0 = " << ::math(E0) << endl;
 
     map<string, DMatrix> arg;
     arg["lbx"] = -1;
@@ -302,8 +325,8 @@ worker_input* initialize(double Wi, double Wf, double mu, double scale, vector<d
     vector<double> x0 = res["x"].nonzeros();
 //        vector<double> x0 = xrand;
 //    cout << "x0 = " << ::math(x0) << endl;
-//    cout << "E0 = " << ::math(res["f"].toScalar()) << endl;
-//    exit(0);
+    cout << "Ipopt E0 = " << ::math(res["f"].toScalar()) << endl;
+    exit(0);
 
     vector<complex<double>> x0i(dim);
     for (int i = 0; i < L; i++) {
